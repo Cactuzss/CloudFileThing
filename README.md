@@ -1,3 +1,3 @@
-# Go File Client
+# Go File Server 
 
-Server part is here: https://github.com/Cactuzss/go-file-server/
+
