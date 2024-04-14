@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/user"
+	"strings"
 )
 
 type Configurator struct {
@@ -18,7 +19,7 @@ func NewConfigurator() Configurator {
 	}
 
 	return Configurator{
-		"localhost:1488", // TODO: DO NOT FORGOR IT
+		"localhost:1109",
 		user.Username,
 	}
 }
@@ -31,10 +32,17 @@ func SaveAsJson(path string, config Configurator) {
 
 	err = os.WriteFile(path, data, 0644)
 	if err != nil {
-		panic(err)
-	}
+		if os.IsNotExist(err) {
+			delimPos := strings.LastIndex(path, "/")
+			woName := path[:delimPos+1]
 
-	//fmt.Println("Writed " + string(data))
+			if _, err := os.Stat(woName); os.IsNotExist(err) {
+				os.Mkdir(woName, 0777)
+			}
+
+			os.Create(path)
+		}
+	}
 }
 
 func LoadFromJson(path string) Configurator {
@@ -49,7 +57,9 @@ func LoadFromJson(path string) Configurator {
 
 	err = json.Unmarshal(data, &conf)
 	if err != nil {
-		panic(err)
+		os.Create(path)
+		CloseConfigurator(path, conf)
+		return conf
 	}
 
 	return conf

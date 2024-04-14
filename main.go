@@ -23,12 +23,20 @@ func errcheck(err error) {
 }
 
 func help() {
-	fmt.Println("\nUsage:")
-	fmt.Println("set-server <host address>")
-	fmt.Println("ping")
-	fmt.Println("send <filename>")
-	fmt.Println("list")
+	fmt.Println("=====================================================")
+	fmt.Println("\nServer Usage:")
+	fmt.Println("start-server [port] - start server on given port. If port is not set, it will be 1109")
 
+	fmt.Println("\nClient Usage:")
+	fmt.Println("set-server <host address> - set server address")
+	fmt.Println("ping - ping server")
+	fmt.Println("list - list files on the server")
+	fmt.Println("send <path> - send file to server. Path to the file should be absolute")
+	fmt.Println("get <filename> - get file from server. Filename to the file should be like in 'list' command output")
+	fmt.Println("delete <filename> - delete file from server. Filename to the file should be like in 'list' command output")
+
+	fmt.Println("\nhelp - show this message")
+	fmt.Println("\n=====================================================")
 	fmt.Println()
 }
 
@@ -77,6 +85,15 @@ func main() {
 		}
 		deleteFile(os.Args[2])
 
+	case "start-server":
+		if len(os.Args) == 3 {
+			listen_port = os.Args[2]
+		}
+
+		fmt.Println("Listening on port " + listen_port)
+
+		Server()
+
 	case "help":
 		help()
 
@@ -91,6 +108,10 @@ func configure() {
 
 	workingDir = "/home/" + user.Username + "/GFS/"
 
+	if _, err := os.Stat(server_workingDir); os.IsNotExist(err) {
+		os.Mkdir(server_workingDir, 0777)
+	}
+
 	conf = LoadFromJson(workingDir + cfgFile)
 }
 
@@ -101,7 +122,10 @@ func setServer(arg string) {
 
 func pingServer() {
 	conn, err := net.Dial("tcp", conf.HostAddress)
-	errcheck(err)
+	if err != nil {
+		fmt.Println("Can't connect to server")
+		return
+	}
 
 	fmt.Println("Sending ping to " + conf.HostAddress)
 
@@ -117,7 +141,7 @@ func pingServer() {
 	errcheck(err)
 
 	if len(data) != 0 {
-		fmt.Println("Server responded with: " + data)
+		fmt.Println("Server is active. (" + data[:len(data)-1] + ")")
 		return
 	}
 
@@ -126,7 +150,10 @@ func pingServer() {
 
 func sendFile(filename string) {
 	conn, err := net.Dial("tcp", conf.HostAddress)
-	errcheck(err)
+	if err != nil {
+		fmt.Println("Can't connect to server")
+		return
+	}
 	defer conn.Close()
 
 	fmt.Println("Sending file " + filename + " to " + conf.HostAddress)
@@ -150,7 +177,10 @@ func sendFile(filename string) {
 
 func listFiles() {
 	conn, err := net.Dial("tcp", conf.HostAddress)
-	errcheck(err)
+	if err != nil {
+		fmt.Println("Can't connect to server")
+		return
+	}
 	defer conn.Close()
 
 	writer := bufio.NewWriter(conn)
@@ -173,7 +203,10 @@ func listFiles() {
 
 func getFile(filename string) {
 	conn, err := net.Dial("tcp", conf.HostAddress)
-	errcheck(err)
+	if err != nil {
+		fmt.Println("Can't connect to server")
+		return
+	}
 	defer conn.Close()
 
 	writer := bufio.NewWriter(conn)
@@ -195,7 +228,10 @@ func getFile(filename string) {
 
 func deleteFile(filename string) {
 	conn, err := net.Dial("tcp", conf.HostAddress)
-	errcheck(err)
+	if err != nil {
+		fmt.Println("Can't connect to server")
+		return
+	}
 	defer conn.Close()
 
 	writer := bufio.NewWriter(conn)
